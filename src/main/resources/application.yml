@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    include: private
   mvc:
     view:
       prefix: /WEB-INF/jsp/

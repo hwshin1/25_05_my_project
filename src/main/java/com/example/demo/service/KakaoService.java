@@ -1,55 +1,131 @@
 package com.example.demo.service;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
-import com.example.demo.vo.KakaoToken;
+import com.example.demo.vo.KakaoApi;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
-import io.netty.handler.codec.http.HttpHeaderValues;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Mono;
 
-@Slf4j
-@RequiredArgsConstructor
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class KakaoService {
-    private String clientId;
-    private final String KAUTH_TOKEN_URL_HOST;
-    private final String KAUTH_USER_URL_HOST;
+	@Autowired
+	private KakaoApi kakaoApi;
+	
+	public String getAccessToken(String code) {
+		String accessToken = "";
+	    String refreshToken = "";
+	    String reqUrl = "https://kauth.kakao.com/oauth/token";
 
-    @Autowired
-    public KakaoService(@Value("${kakao.client_id}") String clientId) {
-        this.clientId = clientId;
-        KAUTH_TOKEN_URL_HOST ="https://kauth.kakao.com";
-        KAUTH_USER_URL_HOST = "https://kapi.kakao.com";
-    }
+	    try{
+	        URL url = new URL(reqUrl);
+	        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+	        
+	        //필수 헤더 세팅
+	        conn.setRequestProperty("Content-type", "application/x-www-form-urlencoded;charset=utf-8");
+	        conn.setDoOutput(true); //OutputStream으로 POST 데이터를 넘겨주겠다는 옵션.
 
-    public String getAccessTokenFromKakao(String code) {
-        KakaoToken kakaoTokenResponseDto = WebClient.create(KAUTH_TOKEN_URL_HOST).post()
-                .uri(uriBuilder -> uriBuilder
-                        .scheme("https")
-                        .path("/oauth/token")
-                        .queryParam("grant_type", "authorization_code")
-                        .queryParam("client_id", clientId)
-                        .queryParam("code", code)
-                        .build(true))
-                .header(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_X_WWW_FORM_URLENCODED.toString())
-                .retrieve()
-                .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> Mono.error(new RuntimeException("Invalid Parameter")))
-                .onStatus(HttpStatusCode::is5xxServerError, clientResponse -> Mono.error(new RuntimeException("Internal Server Error")))
-                .bodyToMono(KakaoToken.class)
-                .block();
+	        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(conn.getOutputStream()));
+	        StringBuilder sb = new StringBuilder();
+	        
+	        //필수 쿼리 파라미터 세팅
+	        sb.append("grant_type=authorization_code");
+	        sb.append("&client_id=").append(kakaoApi.getClient_id());
+	        sb.append("&redirect_uri=").append(kakaoApi.getRedirect_uri());
+	        sb.append("&code=").append(code);
 
-        log.info(" [Kakao Service] Access Token ------> {}", kakaoTokenResponseDto.getAccessToken());
-        log.info(" [Kakao Service] Refresh Token ------> {}", kakaoTokenResponseDto.getRefreshToken());
-        log.info(" [Kakao Service] Id Token ------> {}", kakaoTokenResponseDto.getIdToken());
-        log.info(" [Kakao Service] Scope ------> {}", kakaoTokenResponseDto.getScope());
+	        bw.write(sb.toString());
+	        bw.flush();
 
-        return kakaoTokenResponseDto.getAccessToken();
-    }
+	        int responseCode = conn.getResponseCode();
+	        log.info("[KakaoService.getAccessToken] responseCode = {}", responseCode);
+
+	        BufferedReader br;
+	        if (responseCode >= 200 && responseCode < 300) {
+	            br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+	        } else {
+	            br = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
+	        }
+
+	        String line = "";
+	        StringBuilder responseSb = new StringBuilder();
+	        while((line = br.readLine()) != null){
+	            responseSb.append(line);
+	        }
+	        String result = responseSb.toString();
+	        log.info("responseBody = {}", result);
+
+	        JsonElement element = JsonParser.parseString(result);
+	        accessToken = element.getAsJsonObject().get("access_token").getAsString();
+	        refreshToken = element.getAsJsonObject().get("refresh_token").getAsString();
+
+	        br.close();
+	        bw.close();
+	    }catch (Exception e){
+	        e.printStackTrace();
+	    }
+	    return accessToken;
+	}
+
+	public Map<String, Object> getUserInfo(String accessToken) {
+		HashMap<String, Object> userInfo = new HashMap<>();
+	    String reqUrl = "https://kapi.kakao.com/v2/user/me";
+	    try{
+	        URL url = new URL(reqUrl);
+	        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+	        conn.setRequestMethod("POST");
+	        conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+	        conn.setRequestProperty("Content-type", "application/x-www-form-urlencoded;charset=utf-8");
+
+	        int responseCode = conn.getResponseCode();
+	        log.info("[KakaoService.getUserInfo] responseCode : {}",  responseCode);
+
+	        BufferedReader br;
+	        if (responseCode >= 200 && responseCode <= 300) {
+	            br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+	        } else {
+	            br = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
+	        }
+
+	        String line = "";
+	        StringBuilder responseSb = new StringBuilder();
+	        while((line = br.readLine()) != null){
+	            responseSb.append(line);
+	        }
+	        String result = responseSb.toString();
+	        log.info("responseBody = {}", result);
+
+	        JsonElement element = JsonParser.parseString(result);
+
+	        JsonObject properties = element.getAsJsonObject().get("properties").getAsJsonObject();
+	        JsonObject kakaoAccount = element.getAsJsonObject().get("kakao_account").getAsJsonObject();
+
+	        String nickname = properties.getAsJsonObject().get("nickname").getAsString();
+	        String email = kakaoAccount.getAsJsonObject().get("email").getAsString();
+
+	        userInfo.put("nickname", nickname);
+	        userInfo.put("email", email);
+
+	        br.close();
+
+	    }catch (Exception e){
+	        e.printStackTrace();
+	    }
+	    return userInfo;
+	}
 }
