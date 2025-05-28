@@ -1,7 +1,5 @@
 package com.example.demo.controller;
 
-import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -12,6 +10,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.example.demo.service.KakaoService;
 import com.example.demo.vo.KakaoApi;
+import com.example.demo.vo.KakaoLogin;
 import com.example.demo.vo.KakaoToken;
 
 @Controller
@@ -33,19 +32,15 @@ public class KakaoController {
 	
 	@GetMapping("/login/demoshw/oauth")
 	@ResponseBody
-	public KakaoToken callBack(@RequestParam String code) {
+	public KakaoLogin callBack(@RequestParam String code) {
 		System.out.println("인가코드 출력: " + code);
 		
+		// 토큰 받기
 		KakaoToken accessToken = kakaoService.getAccessToken(code);
-		Map<String, Object> userInfo = kakaoService.getUserInfo(accessToken.getAccess_token());
 		
-		String email = (String) userInfo.get("email");
-		String nickname = (String) userInfo.get("nickname");
+		// 사용자 정보 가져오기
+		KakaoLogin userInfo = kakaoService.getUserInfo(accessToken.getAccess_token());
 		
-		System.out.println("email = " + email);
-        System.out.println("nickname = " + nickname);
-        System.out.println("accessToken = " + accessToken);
-		
-		return accessToken;
+		return userInfo;
 	}
 }

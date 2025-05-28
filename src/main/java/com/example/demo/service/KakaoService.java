@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import com.example.demo.repository.KakaoRepository;
 import com.example.demo.vo.KakaoApi;
+import com.example.demo.vo.KakaoLogin;
 import com.example.demo.vo.KakaoToken;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -31,6 +32,9 @@ public class KakaoService {
 	
 	@Autowired
 	private KakaoToken kakaoToken;
+	
+	@Autowired
+	private KakaoLogin kakaoLogin;
 	
 	@Autowired
 	private KakaoRepository kakaoRepository;
@@ -105,9 +109,8 @@ public class KakaoService {
 	    return kakaoToken;
 	}
 
-	public Map<String, Object> getUserInfo(String accessToken) {
+	public KakaoLogin getUserInfo(String accessToken) {
 		String reqUrl = "https://kapi.kakao.com/v2/user/me";
-		HashMap<String, Object> userInfo = new HashMap<>();
 
 		try{
 	        URL url = new URL(reqUrl);
@@ -117,6 +120,7 @@ public class KakaoService {
 	        conn.setRequestProperty("Content-type", "application/x-www-form-urlencoded;charset=utf-8");
 
 	        int responseCode = conn.getResponseCode();
+	        System.out.println("responseCode : " + responseCode);
 	        log.info("[KakaoService.getUserInfo] responseCode : {}",  responseCode);
 
 	        BufferedReader br;
@@ -132,18 +136,24 @@ public class KakaoService {
 	            responseSb.append(line);
 	        }
 	        String result = responseSb.toString();
+	        System.out.println("result : " + result);
 	        log.info("responseBody = {}", result);
 
 	        JsonElement element = JsonParser.parseString(result);
-
-	        JsonObject properties = element.getAsJsonObject().get("properties").getAsJsonObject();
-	        JsonObject kakaoAccount = element.getAsJsonObject().get("kakao_account").getAsJsonObject();
-
+	        JsonObject json = element.getAsJsonObject();
+	        
+	        System.out.println("json : " + json );
+	        
+	        JsonObject properties = json.get("properties").getAsJsonObject();
+	        JsonObject kakaoAccount = json.get("kakao_account").getAsJsonObject();
+	        
 	        String nickname = properties.getAsJsonObject().get("nickname").getAsString();
 	        String email = kakaoAccount.getAsJsonObject().get("email").getAsString();
-
-	        userInfo.put("nickname", nickname);
-	        userInfo.put("email", email);
+	        
+	        kakaoLogin.setId(json.get("id").getAsLong());
+	        kakaoLogin.setConnected_at(json.get("connected_at").getAsString());
+	        kakaoLogin.setProperties_nickname(nickname);
+	        kakaoLogin.setKakao_account_email(email);
 	        
 	        kakaoRepository.getUserInfo(email, nickname);
 
@@ -151,6 +161,6 @@ public class KakaoService {
 	    }catch (Exception e){
 	        e.printStackTrace();
 	    }
-	    return userInfo;
+	    return kakaoLogin;
 	}
 }
