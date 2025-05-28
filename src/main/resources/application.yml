@@ -5,7 +5,16 @@ spring:
     view:
       prefix: /WEB-INF/jsp/
       suffix: .jsp
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/test?useUnicode=true&characterEncoding=utf8&autoReconnect=true&serverTimezone=Asia/Seoul
+    username: root
+    password: 
 
 kakao:
   client_id: bb14e5acee5699f29acef410d1b9b9a1
   redirect_uri: http://localhost:8080/login/demoshw/oauth
+
+mybatis:
+  type-aliases-package: com.example.demo.vo
+  mapper-locations: classpath:/mappers/**/*.xml

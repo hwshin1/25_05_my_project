@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.example.demo.service.KakaoService;
 import com.example.demo.vo.KakaoApi;
+import com.example.demo.vo.KakaoToken;
 
 @Controller
 public class KakaoController {
@@ -32,12 +33,11 @@ public class KakaoController {
 	
 	@GetMapping("/login/demoshw/oauth")
 	@ResponseBody
-	public String callBack(@RequestParam("code") String code) {
+	public KakaoToken callBack(@RequestParam String code) {
 		System.out.println("인가코드 출력: " + code);
 		
-		String accessToken = kakaoService.getAccessToken(code);
-		
-		Map<String, Object> userInfo = kakaoService.getUserInfo(accessToken);
+		KakaoToken accessToken = kakaoService.getAccessToken(code);
+		Map<String, Object> userInfo = kakaoService.getUserInfo(accessToken.getAccess_token());
 		
 		String email = (String) userInfo.get("email");
 		String nickname = (String) userInfo.get("nickname");
