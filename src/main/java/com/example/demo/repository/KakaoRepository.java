@@ -3,5 +3,6 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface KakaoRepository {
-	public int getUserInfo(String email, String nickName);
+	public int doJoin(long id, String access_token, String refresh_token, String kakao_email, String kakao_nickname,
+			String kakao_regDate);
 }

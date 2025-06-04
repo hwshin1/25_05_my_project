@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Component
-public class KakaoLogin {
+public class KakaoInfo{
 	// 회원번호
 	private long id;
 	// 서비스에 연결 완료된 시각

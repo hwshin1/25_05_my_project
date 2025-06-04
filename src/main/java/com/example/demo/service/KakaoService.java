@@ -6,15 +6,13 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.repository.KakaoRepository;
+import com.example.demo.vo.Kakao;
 import com.example.demo.vo.KakaoApi;
-import com.example.demo.vo.KakaoLogin;
+import com.example.demo.vo.KakaoInfo;
 import com.example.demo.vo.KakaoToken;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -34,7 +32,7 @@ public class KakaoService {
 	private KakaoToken kakaoToken;
 	
 	@Autowired
-	private KakaoLogin kakaoLogin;
+	private KakaoInfo kakaoLogin;
 	
 	@Autowired
 	private KakaoRepository kakaoRepository;
@@ -81,7 +79,8 @@ public class KakaoService {
 
 	        String result = responseSb.toString();
 	        log.info("responseBody = {}", result);
-
+	        
+	        // json으로 변환
 	        JsonElement element = JsonParser.parseString(result);
 	        JsonObject json = element.getAsJsonObject();
 	        
@@ -109,7 +108,7 @@ public class KakaoService {
 	    return kakaoToken;
 	}
 
-	public KakaoLogin getUserInfo(String accessToken) {
+	public KakaoInfo getUserInfo(String accessToken) {
 		String reqUrl = "https://kapi.kakao.com/v2/user/me";
 
 		try{
@@ -120,7 +119,6 @@ public class KakaoService {
 	        conn.setRequestProperty("Content-type", "application/x-www-form-urlencoded;charset=utf-8");
 
 	        int responseCode = conn.getResponseCode();
-	        System.out.println("responseCode : " + responseCode);
 	        log.info("[KakaoService.getUserInfo] responseCode : {}",  responseCode);
 
 	        BufferedReader br;
@@ -132,21 +130,25 @@ public class KakaoService {
 
 	        String line = "";
 	        StringBuilder responseSb = new StringBuilder();
+	        
 	        while((line = br.readLine()) != null){
 	            responseSb.append(line);
 	        }
+	        
 	        String result = responseSb.toString();
-	        System.out.println("result : " + result);
 	        log.info("responseBody = {}", result);
 
+	        // json으로 변환
 	        JsonElement element = JsonParser.parseString(result);
 	        JsonObject json = element.getAsJsonObject();
 	        
-	        System.out.println("json : " + json );
+	        System.out.println(json);
 	        
+	        // properties / kakao_account는 객체(json)으로 받아와짐
 	        JsonObject properties = json.get("properties").getAsJsonObject();
 	        JsonObject kakaoAccount = json.get("kakao_account").getAsJsonObject();
 	        
+	        // properties / kakao_account 안에서 각각 닉네임, 이메일 가져오기
 	        String nickname = properties.getAsJsonObject().get("nickname").getAsString();
 	        String email = kakaoAccount.getAsJsonObject().get("email").getAsString();
 	        
@@ -154,13 +156,20 @@ public class KakaoService {
 	        kakaoLogin.setConnected_at(json.get("connected_at").getAsString());
 	        kakaoLogin.setProperties_nickname(nickname);
 	        kakaoLogin.setKakao_account_email(email);
-	        
-	        kakaoRepository.getUserInfo(email, nickname);
 
 	        br.close();
 	    }catch (Exception e){
 	        e.printStackTrace();
 	    }
 	    return kakaoLogin;
+	}
+
+	public Kakao doJoin(long id, String access_token, String refresh_token, String kakao_email, String kakao_nickname,
+			String kakao_regDate) {
+		kakaoRepository.doJoin(id, access_token, refresh_token, kakao_email, kakao_nickname, kakao_regDate);
+		
+		Kakao kakao = new Kakao(id, access_token, refresh_token, kakao_email, kakao_nickname, kakao_regDate);
+		
+		return kakao;
 	}
 }

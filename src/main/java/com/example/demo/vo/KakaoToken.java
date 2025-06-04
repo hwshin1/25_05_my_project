@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Component
 public class KakaoToken {
+	private int id;
 	// 토큰 타입
 	private String token_type;
 	// 사용자 엑세스 토큰 값

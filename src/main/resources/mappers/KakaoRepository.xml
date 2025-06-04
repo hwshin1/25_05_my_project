@@ -4,10 +4,14 @@
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.example.demo.repository.KakaoRepository">
-	<insert id="getUserInfo" parameterType="map">
-		INSERT INTO Kakao
+	<insert id="doJoin" parameterType="map">
+		INSERT INTO kakao
 		SET
-		email = #{email},
-		nickName = #{nickName}
+		kakao_id = #{id},
+		access_token = #{access_token},
+		refresh_token = #{refresh_token},
+		kakao_email = #{kakao_email},
+		kakao_nickname = #{kakao_nickname},
+		kakao_regDate = #{kakao_regDate}
 	</insert>
 </mapper>
